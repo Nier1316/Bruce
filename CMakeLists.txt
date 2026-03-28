@@ -55,31 +55,12 @@ add_executable(${CMAKE_PROJECT_NAME}
         4-Application_Layer/Robot_Task/robot_task.c
         4-Application_Layer/Execution/Chassis_Task/Chassis_task.h
         4-Application_Layer/Execution/Chassis_Task/Chassis_task.c
-        4-Application_Layer/Execution/Gimbal_Task/Gimbal_task.c
-        4-Application_Layer/Execution/Gimbal_Task/Gimbal_task.h
-        4-Application_Layer/Perception/Ins_Task/Ins_task.c
-        4-Application_Layer/Perception/Ins_Task/Ins_task.h
-        4-Application_Layer/Perception/Referee_Task/Referee_task.c
-        4-Application_Layer/Perception/Referee_Task/Referee_task.h
-        4-Application_Layer/Execution/Shoot_Task/shoot_task.c
-        4-Application_Layer/Execution/Shoot_Task/shoot_task.h
         4-Application_Layer/Execution/Motor_Task/motor_task.c
         4-Application_Layer/Execution/Motor_Task/motor_task.h
         4-Application_Layer/Execution/Watchdog_Task/watchdog_task.h
         4-Application_Layer/Execution/Watchdog_Task/watchdog_task.c
 
 
-        2-Hardware_Driver_Layer/IMU_Driver/Bmi088_Driver/bmi088.h
-        2-Hardware_Driver_Layer/IMU_Driver/Bmi088_Driver/bmi088.c
-        2-Hardware_Driver_Layer/IMU_Driver/Bmi088_Driver/bmi088_reg_def.h
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt606_Driver/hwt606_uart.c
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt606_Driver/hwt606_uart.h
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt606_Driver/hwt606_iic.c
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt606_Driver/hwt606_iic.h
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt101_Driver/hwt101_iic.c
-        2-Hardware_Driver_Layer/IMU_Driver/Hwt101_Driver/hwt101_iic.h
-
-        
         0-Middleware_Layer/Pid_Controller/algorithm_pid.h
         0-Middleware_Layer/Pid_Controller/algorithm_pid.c
         0-Middleware_Layer/Kalman_Fliter/algorithm_ekf.h
@@ -113,16 +94,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         0-Middleware_Layer/RTT-main/RTT/SEGGER_RTT_printf.c
         0-Middleware_Layer/RTT-main/Config/SEGGER_RTT_Conf.h
 
-        4-Application_Layer/For_Testing_Task/can_motors_test_task.h
-        4-Application_Layer/For_Testing_Task/can_motors_test_task.c
-        4-Application_Layer/For_Testing_Task/rc_test_task.h
-        4-Application_Layer/For_Testing_Task/rc_test_task.c
-        4-Application_Layer/For_Testing_Task/message_test_task.h
-        4-Application_Layer/For_Testing_Task/message_test_task.c
-        4-Application_Layer/For_Testing_Task/chassis_motor_integration_test.c
-        4-Application_Layer/For_Testing_Task/chassis_motor_integration_test.h
-        4-Application_Layer/For_Testing_Task/DM_test_task.c
-        4-Application_Layer/For_Testing_Task/DM_test_task.h
         4-Application_Layer/Decision_Making/Decision_making_task.c
         4-Application_Layer/Decision_Making/Decision_making_task.h
         4-Application_Layer/Decision_Making/Shell_task.c
@@ -138,30 +109,12 @@ add_executable(${CMAKE_PROJECT_NAME}
         3-Function_Module_Layer/Robot_Definitions/robot_definitions.h
         3-Function_Module_Layer/Chassis/chassis.c
         3-Function_Module_Layer/Chassis/chassis.h
-        3-Function_Module_Layer/Chassis/chassis_power_control.c
-        3-Function_Module_Layer/Chassis/chassis_power_control.h
-        3-Function_Module_Layer/Gimbal/gimbal.c
-        3-Function_Module_Layer/Gimbal/gimbal.h
-        3-Function_Module_Layer/Ins/ins.c
-        3-Function_Module_Layer/Ins/ins.h
-        3-Function_Module_Layer/Referee/referee.c
-        3-Function_Module_Layer/Referee/referee.h
-        3-Function_Module_Layer/Shoot/shoot.c
-        3-Function_Module_Layer/Shoot/shoot.h
-        3-Function_Module_Layer/Super_Capacitor/supercap_comm.c
-        3-Function_Module_Layer/Super_Capacitor/supercap_comm.h
-        3-Function_Module_Layer/Ins/ins.c
-        3-Function_Module_Layer/Ins/ins.h
-
-
         3-Function_Module_Layer/Decision_making/decision_making.c
         3-Function_Module_Layer/Decision_making/decision_making.h
         2-Hardware_Driver_Layer/Buzzer_Driver/buzzer_driver.h
         2-Hardware_Driver_Layer/Buzzer_Driver/buzzer_driver.c
         2-Hardware_Driver_Layer/Buzzer_Driver/buzzer_music.h
         2-Hardware_Driver_Layer/Buzzer_Driver/buzzer_music.c
-        3-Function_Module_Layer/Ins/imu_temp.c
-        3-Function_Module_Layer/Ins/imu_temp.h
         0-Middleware_Layer/Kalman_Fliter/MahonyAHRS.c
         0-Middleware_Layer/Kalman_Fliter/MahonyAHRS.h
         3-Function_Module_Layer/Vofa/vofa.c
@@ -183,8 +136,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         1-Hardware_Layer/bsp_usb/bsp_usb.h
         1-Hardware_Layer/bsp_spi/bsp_spi.c
         1-Hardware_Layer/bsp_spi/bsp_spi.h
-        1-Hardware_Layer/bsp_iic/bsp_iic.c
-        1-Hardware_Layer/bsp_iic/bsp_iic.h
         3-Function_Module_Layer/Buzzer_Alarm/buzzer_alarm.c
         3-Function_Module_Layer/Buzzer_Alarm/buzzer_alarm.h
         4-Application_Layer/Buzzer_Alarm_Task/buzzer_alarm_task.c

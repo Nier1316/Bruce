@@ -36,12 +36,12 @@ typedef enum
 /**DJI电机控制类型**/
 typedef enum
 {
-    OPEN_LOOP = 0b0000,             //开环
-    CURRENT_LOOP = 0b0001,          //电流环
-    SPEED_LOOP = 0b0010,            //速度环
-    ANGLE_LOOP = 0b0100,            //角度环
-    SPEED_AND_CURRENT_LOOP = 0b0011,
-    ANGLE_AND_SPEED_LOOP = 0b0110,
+    OPEN_LOOP = 0x0,               //开环
+    CURRENT_LOOP = 0x1,            //电流环
+    SPEED_LOOP = 0x2,              //速度环
+    ANGLE_LOOP = 0x4,              //角度环
+    SPEED_AND_CURRENT_LOOP = 0x3,
+    ANGLE_AND_SPEED_LOOP = 0x6,
 } Djimotor_closeloop_e;
 
 typedef enum

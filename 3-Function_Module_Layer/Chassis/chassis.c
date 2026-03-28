@@ -18,8 +18,6 @@
 #include "arm_math.h"
 #include "bsp_usart.h"
 #include "robot_task.h"
-#include "chassis_power_control.h"
-#include "supercap_comm.h"
 
 
 #define CHASSIS_FOLLOW_YAW_GAIN 0.5f
@@ -55,11 +53,7 @@ Chassis_cmd_send_t test_cmd;
 void Chassis_task_init(void) {
     //底盘模块初始化
     Chassis_init();
-    //超电初始化
-    // SuperCap_Comm_Init(&hcan2);
 
-    //底盘功率控制初始化
-    Chassis_Power_Control_Init();
 }
 
 /**

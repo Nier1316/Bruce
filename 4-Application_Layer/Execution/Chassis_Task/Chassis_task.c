@@ -13,9 +13,7 @@
 #include <stdio.h>
 
 #include "chassis.h"
-#include "chassis_power_control.h"
 #include "robot_task.h"
-#include "supercap_comm.h"
 
 /**
  * @brief 底盘控制任务函数

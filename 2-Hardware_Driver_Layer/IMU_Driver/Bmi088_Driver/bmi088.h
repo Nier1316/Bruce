@@ -6,7 +6,6 @@
 #ifndef BMI088_H
 #define BMI088_H
 
-#include "ins.h"       
 #include "bsp_spi.h"   
 #include "main.h"      
 

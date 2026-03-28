@@ -3,7 +3,6 @@
 
 #include "main.h"
 #include "robot_definitions.h"
-#include "ins.h"
 
 /**************决策*****************/
 
@@ -117,7 +116,7 @@ void Emergency_stop();
  * @brief 控制输入为键鼠的模式和控制量设置，不做发送
  *
 */
-static void Keyboard_command_set();
+void Keyboard_command_set();
 
 /**
  * @brief 根据gimbal传回的当前电机角度计算和零位的误差

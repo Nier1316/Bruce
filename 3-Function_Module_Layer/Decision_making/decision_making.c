@@ -19,7 +19,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include "SBUS.h"
-#include "gimbal.h"  // 用于获取云台状态
 #include "robot_task.h"
 #include "bsp_usart.h"
 #include "video_link.h"
@@ -121,10 +120,6 @@ void Receive_feedback_infomation()
 {
     //获取底盘反馈信息
     xQueuePeek(Chassis_cmd_queue_handle, &chassis_feedback_recv, 0);
-    //获取云台反馈信息
-    xQueuePeek(Gimbal_feedback_queue_handle, &gimbal_feedback_recv, 0);
-    //获取发射机构反馈信息
-    xQueuePeek(Shoot_cmd_queue_handle, &shoot_feedback_recv, 0);
 }
 
 void Send_command_to_all_task()
@@ -133,12 +128,6 @@ void Send_command_to_all_task()
     // Uart_printf(test_uart,"Sending command to all tasks\r\n");
     //发送底盘控制信息
     xQueueOverwrite(Chassis_cmd_queue_handle, &chassis_cmd_send);
-
-    //发送云台控制信息
-    xQueueOverwrite(Gimbal_cmd_queue_handle, &gimbal_cmd_send);
-
-    //发送发射机构控制信息
-    xQueueOverwrite(Shoot_cmd_queue_handle, &shoot_cmd_send);
 }
 
 /**
