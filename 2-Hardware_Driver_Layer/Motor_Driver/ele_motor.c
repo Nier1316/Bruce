@@ -1,4 +1,21 @@
-#include "motor_rw_api.h"
+#include "ele_motor.h"
+#include "dji_motor.h"
+#include "algorithm_pid.h"
+#include "bsp_can.h"
+#include "bsp_usart.h"
+#include "bsp_wdg.h" // 引入看门狗库
+#include "main.h"
+#include "stdio.h"
+#include "stdlib.h"
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "buzzer_music.h"
+#include "buzzer_alarm.h"
+
+
+
+
 
 ////////////////////////////用户使用函数//////////////////////////////////////
 /** 读写电机参数 

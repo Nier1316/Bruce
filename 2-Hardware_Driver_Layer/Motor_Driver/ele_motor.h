@@ -2,7 +2,12 @@
 #define MOTOR_RW_API_H
 
 #include <stdint.h>
-
+#include "bsp_can.h"
+#include "algorithm_pid.h"
+#include "string.h"
+#include "robot_definitions.h"
+#include <stdbool.h>
+#include "bsp_wdg.h" // [新增] 引入看门狗
 #define MOTOR_Set_Test                0x00      //测试，无实际用途
 
 #define MOTOR_OR_Error                0x01      //错误信息
