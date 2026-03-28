@@ -59,7 +59,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         4-Application_Layer/Execution/Motor_Task/motor_task.h
         4-Application_Layer/Execution/Watchdog_Task/watchdog_task.h
         4-Application_Layer/Execution/Watchdog_Task/watchdog_task.c
-
+        4-Application_Layer/For_Testing_Task/motor_test_task.c
+        4-Application_Layer/For_Testing_Task/motor_test_task.h
 
         0-Middleware_Layer/Pid_Controller/algorithm_pid.h
         0-Middleware_Layer/Pid_Controller/algorithm_pid.c
