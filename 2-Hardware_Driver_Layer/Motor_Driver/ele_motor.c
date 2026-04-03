@@ -1,135 +1,312 @@
 #include "ele_motor.h"
-#include "dji_motor.h"
-#include "algorithm_pid.h"
+#include "can.h"
 #include "bsp_can.h"
-#include "bsp_usart.h"
-#include "bsp_wdg.h" // 引入看门狗库
-#include "main.h"
-#include "stdio.h"
-#include "stdlib.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "buzzer_music.h"
-#include "buzzer_alarm.h"
+#define ELE_RW_WRITE 1U
+#define ELE_PKT_HEAD 0x80U
+#define ELE_PKT_TAIL 0xECU
+#define ELE_CMD_FILL 0xFFU
+#define ELE_ENABLE_WAIT_TIMEOUT_MS 20U
+#define ELE_ENABLE_RETRY_DELAY_MS 5U
 
-
-
-
-
-////////////////////////////用户使用函数//////////////////////////////////////
-/** 读写电机参数 
- *  @param parameter   设置的参数值，读时设置为0
- *  @param RW          读写：置0读，置1写
- *  @param type        参数类型，头文件中定义如：MOTOR_OR_temperature 读取电机温度
- *  @param id          电机的ID号
- *  @note
- */  
-void float2bag(float parameter,uint8_t RW,uint8_t type,uint8_t id){
-    unsigned char *pdata = (unsigned char *)&parameter;
-    uint8_t temp[8] = {0x80,*pdata++,*pdata++,*pdata++,*pdata++,RW,type,0xEC};//小端模式
-		TxMes.StdId = id;
-		canTrans(temp); //使用CAN发送数据包，修改为自己程序中的CAN发送函数
-}
-
-//控制指令：
-//设置PD参数,参数对应关系看motorConsole上位机,例如速度控制p1:期望速度 p2:速度环kp p3:无设置 p4:无设置 p5:速度环ki,model为电机模式,id为电机id
-/** 控制指令： 
- *  @param p1~p5       对应相应的发送参数
- *  @param id          电机的ID号
- *  @note 必须确保电机处于正确的控制模式，如：float2bag(IMPEDANCE,1,MOTOR_WR_CONTROL_MODE,id);切换到阻抗控制
- *        函数中的temp为CAN的8个数据帧
- */  
-void set_motor_para_bt(float p1,float p2,float p3,float p4,float p5,int model,int id){
-    uint8_t temp[8];
-    if(model == IMPEDANCE){                                            //阻抗控制模式
-        uint16_t p_int = float_to_uint(p1, P_MIN, P_MAX, 15);          //期望角度   单位：弧度
-        uint16_t v_int = float_to_uint(p2, V_MIN, V_MAX, 12);          //期望角速度 单位：弧度每秒
-        uint16_t kp_int = float_to_uint(p3, KP_MIN, KP_MAX, 12);       //刚度系数
-        uint16_t kd_int = float_to_uint(p4, KD_MIN, KD_MAX, 12);       //阻尼系数
-        uint16_t t_int = float_to_uint(p5, T_MIN, T_MAX, 12);          //扭矩前馈   单位：牛米
-        temp[0] = (uint8_t)(p_int >> 8 & 0x7f);
-        temp[1] = (uint8_t)(p_int & 0xFF);
-        temp[2] = (uint8_t)(v_int >> 4);
-        temp[3] = (uint8_t)(((v_int & 0xF) << 4) | (kp_int >> 8));
-        temp[4] = (uint8_t)(kp_int & 0xFF);
-        temp[5] = (uint8_t)(kd_int >> 4);
-        temp[6] = (uint8_t)(((kd_int & 0xF) << 4) | (t_int >> 8));
-        temp[7] = (uint8_t)(t_int & 0xff);
-    }
-    else if(model == SPEED){                                           //速度控制模式
-        uint32_t v_int = float_to_uint(p1, V_MIN, V_MAX, 31);          //期望角速度 单位：弧度每秒
-        uint16_t kvp_int = float_to_uint(p2, KP_MIN, KP_MAX, 16);      //速度环Kp
-        uint16_t kvi_int = float_to_uint(p5, KI_MIN, KI_MAX, 16);      //速度环Ki
-        temp[0] = (uint8_t)(v_int >> 24 & 0x7f);
-        temp[1] = (uint8_t)(v_int >> 16 & 0xFF);
-        temp[2] = (uint8_t)(v_int >> 8 & 0xFF);
-        temp[3] = (uint8_t)(v_int & 0xFF);
-        temp[4] = (uint8_t)(kvp_int >> 8 & 0xFF);
-        temp[5] = (uint8_t)(kvp_int & 0xff);
-        temp[6] = (uint8_t)(kvi_int >> 8 & 0xFF);
-        temp[7] = (uint8_t)(kvi_int & 0xff);
-    }
-    else if(model == POSITION){                                         //位置控制模式
-        uint16_t p_int = float_to_uint(p1, P_MIN, P_MAX, 15); 
-        uint16_t kvp_int = float_to_uint(p2, KP_MIN, KP_MAX, 12);       //位置环Kp
-        uint16_t kp_int = float_to_uint(p3, KP_MIN, KP_MAX, 12);        //速度环Kp
-        uint16_t kd_int = float_to_uint(p4, KD_MIN, KD_MAX, 12);        //位置环Kd
-        uint16_t kvi_int = float_to_uint(p5, KI_MIN, KI_MAX, 12);       //速度环Ki
-        temp[0] = (uint8_t)(p_int >> 8 & 0x7f);
-        temp[1] = (uint8_t)(p_int & 0xFF);
-        temp[2] = (uint8_t)(kvp_int >> 4);
-        temp[3] = (uint8_t)(((kvp_int & 0xF) << 4) | (kp_int >> 8));
-        temp[4] = (uint8_t)(kp_int & 0xFF);
-        temp[5] = (uint8_t)(kd_int >> 4);
-        temp[6] = (uint8_t)(((kd_int & 0xF) << 4) | (kvi_int >> 8));
-        temp[7] = (uint8_t)(kvi_int & 0xff);
-    }
-		TxMes.StdId = id;//设置CAN的ID帧，修改为自己程序中的CAN数据结构体
-		canTrans(temp); //使用CAN发送数据包，修改为自己程序中的CAN发送函数
-}
-
-/** //CAN数据解包 
- */  
-float unpack_cmd(uint8_t *data) 
+typedef struct
 {
-	if((data[0]&0x80) && data[5]&0x7f){	//float2bag读写参数后，电机返回数据包解包
-		uint8_t type = data[5]; //电机返回的是哪个参数
-		unionFloat canRecev;
-		canRecev.uValue[0] = data[1]; //canRecev.fValue中为返回的对应参数的值
-		canRecev.uValue[1] = data[2];
-		canRecev.uValue[2] = data[3];
-		canRecev.uValue[3] = data[4];
-		// uint8_t temp[13];
-		// sprintf(temp,"d:%.2f,t:%d",canRecev.fValue,type); // float 到 char
-		// HAL_UART_Transmit(&huart1,(uint8_t *)temp,12,1000);
-	}
-	else{	//set_motor_para_bt设置参数后，电机返回数据包解包
-		uint16_t id = data[0] & 0x0f;                                    //接收到的id
-		uint16_t p_int = (data[1]<<8)|data[2]; 
-		uint16_t v_int = (data[3]<<4)|(data[4]>>4); 
-		uint16_t i_int = ((data[4]&0xF)<<8)|data[5]; 
-		/// convert uints to floats /// 
-		float p = uint_to_float(p_int, P_MIN, P_MAX, 16);                //返回的电机角度
-		float v = uint_to_float(v_int, V_MIN, V_MAX, 12);                //返回的电机角速度 
-		float t = uint_to_float(i_int, -T_MAX, T_MAX, 12);               //返回的电机扭矩 
-	}
+    Can_controller_t *can_dev;
+    volatile uint8_t has_new;
+    volatile uint8_t is_param_frame;
+    float param_value;
+    Ele_motor_feedback_t feedback;
+} Ele_motor_ctx_t;
+
+static Ele_motor_ctx_t g_ele_ctx;
+
+/** 原始CAN帧发送
+ *  @param id    电机CAN标准帧ID
+ *  @param data  8字节发送数据
+ */
+static void ele_send_raw(uint8_t id, uint8_t data[8])
+{
+    CAN_TxHeaderTypeDef tx = {0};
+    uint32_t mailbox = 0;
+    tx.StdId = id;
+    tx.IDE = CAN_ID_STD;
+    tx.RTR = CAN_RTR_DATA;
+    tx.DLC = 8;
+    HAL_CAN_AddTxMessage(&hcan1, &tx, data, &mailbox);
 }
 
+static void Ele_motor_can_rx_cb(Can_controller_t *can_dev, void *context)
+{
+    Ele_motor_ctx_t *ctx = (Ele_motor_ctx_t *)context;
+    uint8_t *data = can_dev->rx_buffer;
+
+    if ((data[0] & 0x80U) && (data[5] & 0x7FU))
+    {
+        ctx->is_param_frame = 1U;
+        ctx->param_value = Ele_motor_u8Arry2float(data, 1);
+    }
+    else
+    {
+        uint16_t p_int = (uint16_t)((data[1] << 8) | data[2]);
+        uint16_t v_int = (uint16_t)((data[3] << 4) | (data[4] >> 4));
+        uint16_t i_int = (uint16_t)(((data[4] & 0x0F) << 8) | data[5]);
+
+        ctx->is_param_frame = 0U;
+        ctx->feedback.id = data[0] & 0x0FU;
+        ctx->feedback.position = Ele_motor_uint_to_float(p_int, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 16);
+        ctx->feedback.velocity = Ele_motor_uint_to_float(v_int, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 12);
+        ctx->feedback.torque = Ele_motor_uint_to_float(i_int, -ELE_MOTOR_T_MAX, ELE_MOTOR_T_MAX, 12);
+    }
+
+    ctx->has_new = 1U;
+}
+
+void Ele_motor_register(uint8_t id)
+{
+    Can_init_t can_config = {0};
+
+    can_config.can_handle = &hcan1;
+    can_config.can_id = id;
+    can_config.tx_id = id;
+    can_config.rx_id = id + 50;
+    can_config.context = &g_ele_ctx;
+    can_config.receive_callback = Ele_motor_can_rx_cb;
+
+    g_ele_ctx.can_dev = Can_device_init(&can_config);
+    g_ele_ctx.has_new = 0U;
+    g_ele_ctx.is_param_frame = 0U;
+    g_ele_ctx.param_value = 0.0f;
+    g_ele_ctx.feedback.id = 0U;
+    g_ele_ctx.feedback.position = 0.0f;
+    g_ele_ctx.feedback.velocity = 0.0f;
+    g_ele_ctx.feedback.torque = 0.0f;
+}
+
+void Ele_motor_init(uint8_t id)
+{
+    uint8_t data[8] = {ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL,
+                       ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_MOTOR_START};
+    Ele_motor_feedback_t fb;
+    uint8_t is_param = 0U;
+
+    Ele_motor_register(id);
+
+    ele_send_raw(id, data);
+
+    
+    // for (;;)
+    // {
+    //     uint32_t start_tick;
+    //     g_ele_ctx.has_new = 0U;
+    //     ele_send_raw(id, data);
+    //     start_tick = HAL_GetTick();
+
+    //     while ((HAL_GetTick() - start_tick) < ELE_ENABLE_WAIT_TIMEOUT_MS)
+    //     {
+    //         if (Ele_motor_fetch_rx(&fb, 0, &is_param) && !is_param)
+    //         {
+    //             return;
+    //         }
+    //     }
+
+    //     HAL_Delay(ELE_ENABLE_RETRY_DELAY_MS);
+    // }
+}
+
+uint8_t Ele_motor_fetch_rx(Ele_motor_feedback_t *feedback, float *param_value, uint8_t *is_param_frame)
+{
+    if (!g_ele_ctx.has_new)
+    {
+        return 0U;
+    }
+
+    g_ele_ctx.has_new = 0U;
+
+    if (is_param_frame)
+    {
+        *is_param_frame = g_ele_ctx.is_param_frame;
+    }
+
+    if (g_ele_ctx.is_param_frame)
+    {
+        if (param_value)
+        {
+            *param_value = g_ele_ctx.param_value;
+        }
+    }
+    else
+    {
+        if (feedback)
+        {
+            *feedback = g_ele_ctx.feedback;
+        }
+    }
+
+    return 1U;
+}
 
 ////////////////////////////用户使用函数//////////////////////////////////////
+/** 读写电机参数
+ *  @param parameter   设置的参数值，读时设置为0
+ *  @param rw          读写：置0读，置1写
+ *  @param type        参数类型，头文件中定义如：ELE_MOTOR_OR_TEMPERATURE
+ *  @param id          电机ID号
+ */
+void Ele_motor_param_rw(float parameter, uint8_t rw, uint8_t type, uint8_t id)
+{
+    union {
+        float f;
+        uint8_t u[4];
+    } value;
+    uint8_t data[8];
+
+    value.f = parameter;
+    data[0] = ELE_PKT_HEAD;
+    data[1] = value.u[0];
+    data[2] = value.u[1];
+    data[3] = value.u[2];
+    data[4] = value.u[3];
+    data[5] = rw;
+    data[6] = type;
+    data[7] = ELE_PKT_TAIL;
+
+    ele_send_raw(id, data);
+}
+
+/** 控制指令
+ *  @param p1~p5  对应各控制模式参数
+ *  @param mode   控制模式：阻抗/速度/位置
+ *  @param id     电机ID号
+ *  @note 必须确保电机处于正确模式，如先调用 Ele_motor_write_control_mode
+ */
+void Ele_motor_set_para(float p1, float p2, float p3, float p4, float p5, uint8_t mode, uint8_t id)
+{
+    uint8_t data[8];
+
+    if (mode == ELE_MOTOR_MODE_IMPEDANCE)
+    {
+        uint16_t p_int = Ele_motor_float_to_uint(p1, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 15);
+        uint16_t v_int = Ele_motor_float_to_uint(p2, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 12);
+        uint16_t kp_int = Ele_motor_float_to_uint(p3, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 12);
+        uint16_t kd_int = Ele_motor_float_to_uint(p4, ELE_MOTOR_KD_MIN, ELE_MOTOR_KD_MAX, 12);
+        uint16_t t_int = Ele_motor_float_to_uint(p5, ELE_MOTOR_T_MIN, ELE_MOTOR_T_MAX, 12);
+
+        data[0] = (uint8_t)((p_int >> 8) & 0x7F);
+        data[1] = (uint8_t)(p_int & 0xFF);
+        data[2] = (uint8_t)(v_int >> 4);
+        data[3] = (uint8_t)(((v_int & 0x0F) << 4) | (kp_int >> 8));
+        data[4] = (uint8_t)(kp_int & 0xFF);
+        data[5] = (uint8_t)(kd_int >> 4);
+        data[6] = (uint8_t)(((kd_int & 0x0F) << 4) | (t_int >> 8));
+        data[7] = (uint8_t)(t_int & 0xFF);
+    }
+    else if (mode == ELE_MOTOR_MODE_SPEED)
+    {
+        uint32_t v_int = Ele_motor_float_to_uint(p1, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 31);
+        uint16_t kvp_int = Ele_motor_float_to_uint(p2, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 16);
+        uint16_t kvi_int = Ele_motor_float_to_uint(p5, ELE_MOTOR_KI_MIN, ELE_MOTOR_KI_MAX, 16);
+
+        data[0] = (uint8_t)((v_int >> 24) & 0x7F);
+        data[1] = (uint8_t)((v_int >> 16) & 0xFF);
+        data[2] = (uint8_t)((v_int >> 8) & 0xFF);
+        data[3] = (uint8_t)(v_int & 0xFF);
+        data[4] = (uint8_t)((kvp_int >> 8) & 0xFF);
+        data[5] = (uint8_t)(kvp_int & 0xFF);
+        data[6] = (uint8_t)((kvi_int >> 8) & 0xFF);
+        data[7] = (uint8_t)(kvi_int & 0xFF);
+    }
+    else
+    {
+        uint16_t p_int = Ele_motor_float_to_uint(p1, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 15);
+        uint16_t kvp_int = Ele_motor_float_to_uint(p2, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 12);
+        uint16_t kp_int = Ele_motor_float_to_uint(p3, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 12);
+        uint16_t kd_int = Ele_motor_float_to_uint(p4, ELE_MOTOR_KD_MIN, ELE_MOTOR_KD_MAX, 12);
+        uint16_t kvi_int = Ele_motor_float_to_uint(p5, ELE_MOTOR_KI_MIN, ELE_MOTOR_KI_MAX, 12);
+
+        data[0] = (uint8_t)((p_int >> 8) & 0x7F);
+        data[1] = (uint8_t)(p_int & 0xFF);
+        data[2] = (uint8_t)(kvp_int >> 4);
+        data[3] = (uint8_t)(((kvp_int & 0x0F) << 4) | (kp_int >> 8));
+        data[4] = (uint8_t)(kp_int & 0xFF);
+        data[5] = (uint8_t)(kd_int >> 4);
+        data[6] = (uint8_t)(((kd_int & 0x0F) << 4) | (kvi_int >> 8));
+        data[7] = (uint8_t)(kvi_int & 0xFF);
+    }
+
+    ele_send_raw(id, data);
+}
+
+/** CAN数据解包
+ *  @param data      8字节回包
+ *  @param feedback  控制回包解析结果输出，传NULL则不输出
+ *  @return 参数读写回包时返回解析出的float；控制回包时返回position；否则返回0
+ */
+float Ele_motor_unpack_cmd(uint8_t *data, Ele_motor_feedback_t *feedback)
+{
+    if ((data[0] & 0x80U) && (data[5] & 0x7FU))
+    {
+        return Ele_motor_u8Arry2float(data, 1);
+    }
+
+    if (feedback)
+    {
+        uint16_t p_int = (uint16_t)((data[1] << 8) | data[2]);
+        uint16_t v_int = (uint16_t)((data[3] << 4) | (data[4] >> 4));
+        uint16_t i_int = (uint16_t)(((data[4] & 0x0F) << 8) | data[5]);
+
+        feedback->id = data[0] & 0x0FU;
+        feedback->position = Ele_motor_uint_to_float(p_int, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 16);
+        feedback->velocity = Ele_motor_uint_to_float(v_int, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 12);
+        feedback->torque = Ele_motor_uint_to_float(i_int, -ELE_MOTOR_T_MAX, ELE_MOTOR_T_MAX, 12);
+        return feedback->position;
+    }
+
+    return 0.0f;
+}
+
+/** 将字节数组中的4字节转成float（小端）
+ *  @param data  数据源
+ *  @param key   起始下标
+ */
+float Ele_motor_u8Arry2float(uint8_t *data, uint8_t key)
+{
+    union {
+        float f;
+        uint8_t u[4];
+    } value;
+
+    value.u[0] = data[key + 0U];
+    value.u[1] = data[key + 1U];
+    value.u[2] = data[key + 2U];
+    value.u[3] = data[key + 3U];
+    return value.f;
+}
 
 /////////////////////////////底层函数////////////////////////////////
-float uint_to_float(int x_int, float x_min, float x_max, int bits) {
-     /// converts unsigned int to float, given range and number of bits /// 
-     float span = x_max - x_min; float offset = x_min; 
-     return ((float)x_int)*span/((float)((1<<bits)-1)) + offset; 
-} 
-
-//float转uint
-unsigned int float_to_uint(float x, float x_min, float x_max, int bits){
-    /// Converts a float to an unsigned int, given range and number of bits ///
+/** uint转float */
+float Ele_motor_uint_to_float(int x_int, float x_min, float x_max, int bits)
+{
     float span = x_max - x_min;
     float offset = x_min;
-    return ((x-offset)*(float)((unsigned int)(1<<bits)-1)/span);
+    return ((float)x_int) * span / ((float)((1 << bits) - 1)) + offset;
+}
+
+/** float转uint */
+unsigned int Ele_motor_float_to_uint(float x, float x_min, float x_max, int bits)
+{
+    float span = x_max - x_min;
+    float offset = x_min;
+    return (unsigned int)(((x - offset) * ((unsigned int)(1U << bits) - 1U)) / span);
+}
+
+/** 快捷接口：写控制模式 */
+void Ele_motor_write_control_mode(uint8_t id, uint8_t mode)
+{
+    Ele_motor_param_rw((float)mode, ELE_RW_WRITE, ELE_MOTOR_WR_CONTROL_MODE, id);
+}
+
+/** 快捷接口：位置模式参数发送 */
+void Ele_motor_set_position(uint8_t id, float pos, float kvp, float kp, float kd, float kvi)
+{
+    Ele_motor_set_para(pos, kvp, kp, kd, kvi, ELE_MOTOR_MODE_POSITION, id);
 }
