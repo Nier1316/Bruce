@@ -1,0 +1,108 @@
+CompileCommands: build/Debug
+
+CompileFlags:
+  Add:
+    # 目标架构
+    - -mcpu=cortex-m4
+    - -mfpu=fpv4-sp-d16
+    - -mfloat-abi=hard
+    - -mthumb
+
+    # 编译器宏定义
+    - -DUSE_HAL_DRIVER
+    - -DSTM32F407xx
+    - -DDEBUG
+    - -DARM_MATH_CM4
+    - -D__FPU_PRESENT=1
+
+    # newlib 标准 C 库头文件 (math.h, stdio.h 等)
+    - -I/usr/include/newlib
+    - -I/usr/lib/gcc/arm-none-eabi/10.3.1/include
+
+    # HAL / CMSIS / FreeRTOS 头文件
+    - -ICore/Inc
+    - -IDrivers/STM32F4xx_HAL_Driver/Inc
+    - -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy
+    - -IDrivers/CMSIS/Device/ST/STM32F4xx/Include
+    - -IDrivers/CMSIS/Include
+    - -IDrivers/CMSIS/DSP/Include
+    - -IMiddlewares/Third_Party/FreeRTOS/Source/include
+    - -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS
+    - -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
+    - -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc
+    - -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+    - -IUSB_DEVICE/App
+    - -IUSB_DEVICE/Target
+
+    # 0-Middleware_Layer
+    - -I0-Middleware_Layer/Pid_Controller
+    - -I0-Middleware_Layer/Message_Center
+    - -I0-Middleware_Layer/Kalman_Fliter
+    - -I0-Middleware_Layer/Math_lib
+    - -I0-Middleware_Layer/Crc
+    - -I0-Middleware_Layer/Ramp_Controller
+    - -I0-Middleware_Layer/Filter
+    - -I0-Middleware_Layer/letter-shell-master/src
+    - -I0-Middleware_Layer/SystemView-main/SEGGER
+    - -I0-Middleware_Layer/SystemView-main/SYSVIEW
+    - -I0-Middleware_Layer/SystemView-main/Config
+    - -I0-Middleware_Layer/SystemView-main/Sample
+    - -I0-Middleware_Layer/SystemView-main/Sample/FreeRTOSV10
+    - -I0-Middleware_Layer/SystemView-main/Sample/FreeRTOSV10/Patch
+    - -I0-Middleware_Layer/SystemView-main/Sample/FreeRTOSV10/Config
+    - -I0-Middleware_Layer/RTT-main/Config
+    - -I0-Middleware_Layer/RTT-main/RTT
+
+    # 1-Hardware_Layer
+    - -I1-Hardware_Layer/bsp_usart
+    - -I1-Hardware_Layer/bsp_dwt
+    - -I1-Hardware_Layer/bsp_can
+    - -I1-Hardware_Layer/bsp_wdg
+    - -I1-Hardware_Layer/bsp_usb
+    - -I1-Hardware_Layer/bsp_spi
+    - -I1-Hardware_Layer/bsp_iic
+
+    # 2-Hardware_Driver_Layer
+    - -I2-Hardware_Driver_Layer/Motor_Driver
+    - -I2-Hardware_Driver_Layer/Buzzer_Driver
+    - -I2-Hardware_Driver_Layer/IMU_Driver/HWT101_Driver
+    - -I2-Hardware_Driver_Layer/IMU_Driver/Hwt101_Driver
+    - -I2-Hardware_Driver_Layer/IMU_Driver/Hwt606_Driver
+    - -I2-Hardware_Driver_Layer/IMU_Driver/Bmi088_Driver
+
+    # 3-Function_Module_Layer
+    - -I3-Function_Module_Layer/Remote_Control
+    - -I3-Function_Module_Layer/Decision_making
+    - -I3-Function_Module_Layer/Robot_Definitions
+    - -I3-Function_Module_Layer/Chassis
+    - -I3-Function_Module_Layer/Gimbal
+    - -I3-Function_Module_Layer/Ins
+    - -I3-Function_Module_Layer/Referee
+    - -I3-Function_Module_Layer/Shoot
+    - -I3-Function_Module_Layer/Vofa
+    - -I3-Function_Module_Layer/Buzzer_Alarm
+    - -I3-Function_Module_Layer/Shell
+    - -I3-Function_Module_Layer/Super_Capacitor
+
+    # 4-Application_Layer
+    - -I4-Application_Layer/Robot_Task
+    - -I4-Application_Layer/For_Testing_Task
+    - -I4-Application_Layer/Decision_Making
+    - -I4-Application_Layer/Remote_Control
+    - -I4-Application_Layer/Buzzer_Alarm_Task
+    - -I4-Application_Layer/Execution/Chassis_Task
+    - -I4-Application_Layer/Execution/Gimbal_Task
+    - -I4-Application_Layer/Execution/Motor_Task
+    - -I4-Application_Layer/Execution/Shoot_Task
+    - -I4-Application_Layer/Execution/Watchdog_Task
+    - -I4-Application_Layer/Perception/Ins_Task
+    - -I4-Application_Layer/Perception/Referee_Task
+
+  # 移除 clangd 不认识的 arm-gcc 专用标志
+  Remove:
+    - -mfloat-abi=*
+    - --specs=*
+    - -fstack-usage
+
+Diagnostics:
+  UnusedIncludes: None
