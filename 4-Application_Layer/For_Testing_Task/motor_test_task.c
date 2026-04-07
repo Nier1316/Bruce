@@ -3,9 +3,6 @@
 #include "ele_motor.h"
 #include <math.h>
 
-/* 测试用电机 CAN ID */
-#define ELE_ID 1U
-
 /**
  * @brief 电机力矩正弦测试任务
  *
@@ -13,17 +10,17 @@
  * 向电机持续输出正弦波形力矩指令，并通过串口打印反馈数据。
  *
  * 正弦参数：
- *   幅值  amp   = 0.5 Nm
- *   频率  f     = 0.5 Hz（周期 2 s）
- *   控制周期     = 10 ms（100 Hz）
+ *   幅值  MOTOR_TEST_TORQUE_AMP = 0.5 Nm
+ *   频率  MOTOR_TEST_FREQ_HZ    = 0.5 Hz（周期 2 s）
+ *   控制周期 MOTOR_TEST_PERIOD_MS = 10 ms（100 Hz）
  */
 void Motor_test_task(void const *argument)
 {
     TickType_t last = xTaskGetTickCount();
-    const TickType_t period = pdMS_TO_TICKS(10);  /* 10 ms 控制周期 */
-    const float dt    = 0.01f;                     /* 与 period 对应的时间步长 (s) */
-    const float amp   = 0.5f;                      /* 力矩幅值 (Nm) */
-    const float omega = 2.0f * 3.1415926f * 0.5f; /* 角频率：2π × 0.5 Hz */
+    const TickType_t period = pdMS_TO_TICKS(MOTOR_TEST_PERIOD_MS);          /* 控制周期 */
+    const float dt    = MOTOR_TEST_PERIOD_MS * 0.001f;                      /* 时间步长 (s) */
+    const float amp   = MOTOR_TEST_TORQUE_AMP;                              /* 力矩幅值 (Nm) */
+    const float omega = 2.0f * 3.1415926f * MOTOR_TEST_FREQ_HZ;            /* 角频率 (rad/s) */
     float t = 0.0f;                                /* 累计时间 (s) */
 
     Ele_motor_feedback_t fb;
@@ -33,8 +30,8 @@ void Motor_test_task(void const *argument)
     (void)argument;
 
     /* 初始化电机并切换到阻抗控制模式 */
-    Ele_motor_init(ELE_ID);
-    Ele_motor_write_control_mode(ELE_ID, ELE_MOTOR_MODE_IMPEDANCE);
+    Ele_motor_init(MOTOR_TEST_ELE_ID);
+    Ele_motor_write_control_mode(MOTOR_TEST_ELE_ID, ELE_MOTOR_MODE_IMPEDANCE);
 
     for (;;)
     {
@@ -43,7 +40,7 @@ void Motor_test_task(void const *argument)
 
         /* 发送力矩指令：阻抗模式下令 kp=kd=0，仅保留力矩前馈分量
          * τ_cmd = kp*(p_ref-p) + kd*(v_ref-v) + τ_ff  →  τ_cmd = τ_ff */
-        Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, ELE_ID);
+        Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, MOTOR_TEST_ELE_ID);
 
         /* 读取电机反馈并通过串口输出 */
         if (Ele_motor_fetch_rx(&fb, &param_value, &is_param))
@@ -51,7 +48,7 @@ void Motor_test_task(void const *argument)
             if (is_param)
             {
                 /* 参数读写回包 */
-                Uart_printf(test_uart, "ele id=%d param=%.3f\r\n", ELE_ID, param_value);
+                Uart_printf(test_uart, "ele id=%d param=%.3f\r\n", MOTOR_TEST_ELE_ID, param_value);
             }
             else
             {
