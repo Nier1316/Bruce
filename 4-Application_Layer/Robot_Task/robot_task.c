@@ -21,25 +21,27 @@
 #include "buzzer_alarm_task.h"
 #include "buzzer_alarm.h"
 #include "motor_test_task.h"
+#include "spi_motor_bridge_task.h"
 
   /**任务句柄声明**/
-osThreadId chassis_task_handle;//底盘任务
-osThreadId decision_making_task_handle;     //决策任务
-osThreadId others_task_handle; //处理其他任务，比如与视觉通信，电量读取等琐碎任务，后续根据实际进行修改
-osThreadId watchdog_task_handle; //看门狗任务
-osThreadId buzzer_alarm_task_handle;
+// osThreadId chassis_task_handle;//底盘任务
+// osThreadId decision_making_task_handle;     //决策任务
+// osThreadId others_task_handle; //处理其他任务，比如与视觉通信，电量读取等琐碎任务，后续根据实际进行修改
+// osThreadId watchdog_task_handle; //看门狗任务
+// osThreadId buzzer_alarm_task_handle;
 osThreadId motor_test_task_handle;//电机测试任务
+osThreadId spi_motor_bridge_task_handle; // SPI-CAN 桥接任务
 
 /*Shell任务句柄*/
-osThreadId shell_task_handle;
-osThreadId motor_task_handle;
+// osThreadId shell_task_handle;
+// osThreadId motor_task_handle;
 
 /**创建各个进程控制队列**/
-QueueHandle_t Chassis_cmd_queue_handle;
+// QueueHandle_t Chassis_cmd_queue_handle;
 
-QueueHandle_t Buzzer_cmd_queue_handle;
+// QueueHandle_t Buzzer_cmd_queue_handle;
 
-QueueHandle_t Chassis_feedback_queue_handle;
+// QueueHandle_t Chassis_feedback_queue_handle;
 
 Uart_instance_t* test_uart = NULL;
 
@@ -52,14 +54,19 @@ void Robot_task_init(void)
     // 创建队列 (必须在任务创建之前!)
     // ============================================================
     // 深度为1，启用覆盖写模式，始终保持最新指令
-    Chassis_cmd_queue_handle = xQueueCreate(1, sizeof(Chassis_cmd_send_t));
+    // Chassis_cmd_queue_handle = xQueueCreate(1, sizeof(Chassis_cmd_send_t));
 
-    Chassis_feedback_queue_handle = xQueueCreate(1, sizeof(Chassis_feedback_info_t));
+    // Chassis_feedback_queue_handle = xQueueCreate(1, sizeof(Chassis_feedback_info_t));
 
-    Buzzer_cmd_queue_handle = xQueueCreate(5,sizeof(uint8_t));
+    // Buzzer_cmd_queue_handle = xQueueCreate(5,sizeof(uint8_t));
     // 选择要运行的测试任务（取消注释需要的测试）
   osThreadDef(motor_test_task, Motor_test_task, osPriorityHigh, 0, 512);
-  motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);    
+  motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);
+
+    // SPI-CAN 桥接任务：接收上位机 SPI 指令 → 电机 CAN，电机状态 → SPI 回传
+  // osThreadDef(spi_motor_bridge_task, Spi_motor_bridge_task, osPriorityHigh, 0, 512);
+  // spi_motor_bridge_task_handle = osThreadCreate(osThread(spi_motor_bridge_task), NULL);
+
     // === 单元测试 ===
 
     //看门狗任务
