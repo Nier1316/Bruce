@@ -1,5 +1,5 @@
-#ifndef MOTOR_TEST_TASK_H
-#define MOTOR_TEST_TASK_H
+#ifndef MOTOR_CTR_TASK_H
+#define MOTOR_CTR_TASK_H
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -19,6 +19,6 @@
 
 
 
-void Motor_test_task(void const *argument);
+void Motor_ctr_task(void const *argument);
 
-#endif /* MOTOR_TEST_TASK_H */
+#endif /* MOTOR_CTR_TASK_H */

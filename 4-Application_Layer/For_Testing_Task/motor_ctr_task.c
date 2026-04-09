@@ -1,4 +1,4 @@
-#include "motor_test_task.h"
+#include "motor_ctr_task.h"
 #include "robot_task.h"
 #include "ele_motor.h"
 #include <math.h>
@@ -14,7 +14,7 @@
  *   频率  MOTOR_TEST_FREQ_HZ    = 0.5 Hz（周期 2 s）
  *   控制周期 MOTOR_TEST_PERIOD_MS = 10 ms（100 Hz）
  */
-void Motor_test_task(void const *argument)
+void Motor_ctr_task(void const *argument)
 {
     TickType_t last = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(MOTOR_TEST_PERIOD_MS);          /* 控制周期 */

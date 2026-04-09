@@ -21,6 +21,7 @@
 #include "buzzer_alarm_task.h"
 #include "buzzer_alarm.h"
 #include "motor_test_task.h"
+#include "motor_ctr_task.h"
 #include "spi_motor_bridge_task.h"
 #include "uart_motor_bridge_task.h"
 
@@ -31,6 +32,7 @@
 // osThreadId watchdog_task_handle; //看门狗任务
 // osThreadId buzzer_alarm_task_handle;
 osThreadId motor_test_task_handle;//电机测试任务
+osThreadId motor_ctr_task_handle; //电机控制任务
 osThreadId spi_motor_bridge_task_handle;  // SPI-CAN 桥接任务
 osThreadId uart_motor_bridge_task_handle; // UART-CAN 桥接任务
 
@@ -64,6 +66,9 @@ void Robot_task_init(void)
     // 选择要运行的测试任务（取消注释需要的测试）
   osThreadDef(motor_test_task, Motor_test_task, osPriorityHigh, 0, 512);
   motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);
+
+  // osThreadDef(motor_ctr_task, Motor_ctr_task, osPriorityHigh, 0, 512);
+  // motor_ctr_task_handle = osThreadCreate(osThread(motor_ctr_task), NULL);
 
     // SPI-CAN 桥接任务：接收上位机 SPI 指令 → 电机 CAN，电机状态 → SPI 回传
   // osThreadDef(spi_motor_bridge_task, Spi_motor_bridge_task, osPriorityHigh, 0, 512);

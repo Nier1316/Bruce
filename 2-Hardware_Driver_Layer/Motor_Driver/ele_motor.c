@@ -94,23 +94,23 @@ void Ele_motor_init(uint8_t id)
     ele_send_raw(id, data);
 
     
-    // for (;;)
-    // {
-    //     uint32_t start_tick;
-    //     g_ele_ctx.has_new = 0U;
-    //     ele_send_raw(id, data);
-    //     start_tick = HAL_GetTick();
+    for (;;)
+    {
+        uint32_t start_tick;
+        g_ele_ctx.has_new = 0U;
+        ele_send_raw(id, data);
+        start_tick = HAL_GetTick();
 
-    //     while ((HAL_GetTick() - start_tick) < ELE_ENABLE_WAIT_TIMEOUT_MS)
-    //     {
-    //         if (Ele_motor_fetch_rx(&fb, 0, &is_param) && !is_param)
-    //         {
-    //             return;
-    //         }
-    //     }
+        while ((HAL_GetTick() - start_tick) < ELE_ENABLE_WAIT_TIMEOUT_MS)
+        {
+            if (Ele_motor_fetch_rx(&fb, 0, &is_param) && !is_param)
+            {
+                return;
+            }
+        }
 
-    //     HAL_Delay(ELE_ENABLE_RETRY_DELAY_MS);
-    // }
+        HAL_Delay(ELE_ENABLE_RETRY_DELAY_MS);
+    }
 }
 
 uint8_t Ele_motor_fetch_rx(Ele_motor_feedback_t *feedback, float *param_value, uint8_t *is_param_frame)
