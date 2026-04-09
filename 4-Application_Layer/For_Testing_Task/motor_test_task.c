@@ -19,8 +19,8 @@ void Motor_test_task(void const *argument)
     TickType_t last = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(MOTOR_TEST_PERIOD_MS);          /* 控制周期 */
     const float dt    = MOTOR_TEST_PERIOD_MS * 0.001f;                      /* 时间步长 (s) */
-//    const float amp   = MOTOR_TEST_TORQUE_AMP;                              /* 力矩幅值 (Nm) */
-//    const float omega = 2.0f * 3.1415926f * MOTOR_TEST_FREQ_HZ;            /* 角频率 (rad/s) */
+   const float amp   = MOTOR_TEST_TORQUE_AMP;                              /* 力矩幅值 (Nm) */
+   const float omega = 2.0f * 3.1415926f * MOTOR_TEST_FREQ_HZ;            /* 角频率 (rad/s) */
     float t = 0.0f;                                /* 累计时间 (s) */
 
     Ele_motor_feedback_t fb;
@@ -35,7 +35,10 @@ void Motor_test_task(void const *argument)
 
     for (;;)
     {
-        /* 读取电机反馈并通过串口输出 */
+        /* 发送参数读取请求，电机下一周期回传参数帧 */
+        Ele_motor_param_rw(0.0f, 0U, MOTOR_TEST_READ_PARAM, MOTOR_TEST_ELE_ID);
+
+        /* 读取上一周期参数请求的回包 */
         if (Ele_motor_fetch_rx(&fb, &param_value, &is_param))
         {
             if (is_param)
@@ -43,20 +46,20 @@ void Motor_test_task(void const *argument)
                 /* 参数读写回包 */
                 Uart_printf(test_uart, "ele id=%d param=%.3f\r\n", MOTOR_TEST_ELE_ID, param_value);
             }
-//            else
-//            {
-//                /* 控制反馈回包：位置、速度、力矩 */
-//                Uart_printf(test_uart, "ele id=%d p=%.3f v=%.3f tq=%.3f\r\n",
-//                            fb.id, fb.position, fb.velocity, fb.torque);
-//            }
+           else
+           {
+               /* 控制反馈回包：位置、速度、力矩 */
+               Uart_printf(test_uart, "ele id=%d p=%.3f v=%.3f tq=%.3f\r\n",
+                           fb.id, fb.position, fb.velocity, fb.torque);
+           }
         }
 
 //        /* 计算当前时刻的正弦力矩目标值 */
-//        float torque = amp * sinf(omega * t);
+       float torque = amp * sinf(omega * t);
 //
 //        /* 发送力矩指令：阻抗模式下令 kp=kd=0，仅保留力矩前馈分量
 //         * τ_cmd = kp*(p_ref-p) + kd*(v_ref-v) + τ_ff  →  τ_cmd = τ_ff */
-//        Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, MOTOR_TEST_ELE_ID);
+       Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, MOTOR_TEST_ELE_ID);
 
         t += dt;
         vTaskDelayUntil(&last, period); /* 严格等周期执行 */
