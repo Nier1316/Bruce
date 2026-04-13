@@ -10,7 +10,7 @@
  * 向电机持续输出正弦波形力矩指令，并通过串口打印反馈数据。
  *
  * 正弦参数：
- *   幅值  MOTOR_TEST_TORQUE_AMP = 0.5 Nm
+ *   幅值  MOTOR_TEST_TORQUE_AMP = 5 Nm
  *   频率  MOTOR_TEST_FREQ_HZ    = 0.5 Hz（周期 2 s）
  *   控制周期 MOTOR_TEST_PERIOD_MS = 10 ms（100 Hz）
  */
@@ -54,12 +54,16 @@ void Motor_test_task(void const *argument)
            }
         }
 
-//        /* 计算当前时刻的正弦力矩目标值 */
-    //    float torque = amp * sinf(omega * t);
-//
-//        /* 发送力矩指令：阻抗模式下令 kp=kd=0，仅保留力矩前馈分量
-//         * τ_cmd = kp*(p_ref-p) + kd*(v_ref-v) + τ_ff  →  τ_cmd = τ_ff */
-    //    Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, MOTOR_TEST_ELE_ID);
+        /* 计算当前时刻的正弦力矩目标值 */
+        float torque = amp * sinf(omega * t);
+
+        /* 软件限幅：防止超过安全扭矩上限 */
+        if (torque >  MOTOR_TEST_TORQUE_MAX) torque =  MOTOR_TEST_TORQUE_MAX;
+        if (torque < -MOTOR_TEST_TORQUE_MAX) torque = -MOTOR_TEST_TORQUE_MAX;
+
+        /* 发送力矩指令：阻抗模式下令 kp=kd=0，仅保留力矩前馈分量
+         * τ_cmd = kp*(p_ref-p) + kd*(v_ref-v) + τ_ff  →  τ_cmd = τ_ff */
+        Ele_motor_set_para(0.0f, 0.0f, 0.0f, 0.0f, torque, ELE_MOTOR_MODE_IMPEDANCE, MOTOR_TEST_ELE_ID);
 
         t += dt;
         vTaskDelayUntil(&last, period); /* 严格等周期执行 */

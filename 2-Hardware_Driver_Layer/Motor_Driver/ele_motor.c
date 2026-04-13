@@ -185,6 +185,10 @@ void Ele_motor_set_para(float p1, float p2, float p3, float p4, float p5, uint8_
 
     if (mode == ELE_MOTOR_MODE_IMPEDANCE)
     {
+        /* 扭矩软件限幅，防止上层传入超限值 */
+        if (p5 >  ELE_MOTOR_T_MAX) p5 =  ELE_MOTOR_T_MAX;
+        if (p5 < -ELE_MOTOR_T_MAX) p5 = -ELE_MOTOR_T_MAX;
+
         uint16_t p_int = Ele_motor_float_to_uint(p1, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 15);
         uint16_t v_int = Ele_motor_float_to_uint(p2, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 12);
         uint16_t kp_int = Ele_motor_float_to_uint(p3, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 12);
@@ -309,4 +313,12 @@ void Ele_motor_write_control_mode(uint8_t id, uint8_t mode)
 void Ele_motor_set_position(uint8_t id, float pos, float kvp, float kp, float kd, float kvi)
 {
     Ele_motor_set_para(pos, kvp, kp, kd, kvi, ELE_MOTOR_MODE_POSITION, id);
+}
+
+/** 快捷接口：停止（失能）电机 */
+void Ele_motor_stop(uint8_t id)
+{
+    uint8_t data[8] = {ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL,
+                       ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_MOTOR_STOP_CMD};
+    ele_send_raw(id, data);
 }

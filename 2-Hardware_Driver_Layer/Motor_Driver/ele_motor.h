@@ -104,5 +104,6 @@ unsigned int Ele_motor_float_to_uint(float x, float x_min, float x_max, int bits
 
 void Ele_motor_write_control_mode(uint8_t id, uint8_t mode);
 void Ele_motor_set_position(uint8_t id, float pos, float kvp, float kp, float kd, float kvi);
+void Ele_motor_stop(uint8_t id);
 
 #endif

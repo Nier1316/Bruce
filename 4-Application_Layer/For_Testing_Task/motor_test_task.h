@@ -17,6 +17,9 @@
 /* 控制周期 */
 #define MOTOR_TEST_PERIOD_MS    10U     /* 控制周期 (ms) */
 
+/* 软件扭矩限幅（安全上限） */
+#define MOTOR_TEST_TORQUE_MAX   10.0f   /* 允许的最大输出扭矩绝对值 (Nm) */
+
 
 
 void Motor_test_task(void const *argument);
