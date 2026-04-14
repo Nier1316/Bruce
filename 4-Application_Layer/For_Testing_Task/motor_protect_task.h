@@ -6,6 +6,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "ele_motor.h"
+#include "motor_read_task.h"
 
 /* 保护用电机 CAN ID */
 #define MOTOR_PROTECT_ELE_ID        1U

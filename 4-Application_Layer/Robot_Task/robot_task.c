@@ -22,6 +22,7 @@
 #include "buzzer_alarm.h"
 #include "motor_test_task.h"
 #include "motor_ctr_task.h"
+#include "motor_read_task.h"
 #include "spi_motor_bridge_task.h"
 #include "uart_motor_bridge_task.h"
 
@@ -33,6 +34,7 @@
 // osThreadId buzzer_alarm_task_handle;
 osThreadId motor_test_task_handle;//电机测试任务
 osThreadId motor_ctr_task_handle; //电机控制任务
+osThreadId motor_read_task_handle; //电机参数读取任务
 osThreadId spi_motor_bridge_task_handle;  // SPI-CAN 桥接任务
 osThreadId uart_motor_bridge_task_handle; // UART-CAN 桥接任务
 
@@ -46,6 +48,8 @@ osThreadId uart_motor_bridge_task_handle; // UART-CAN 桥接任务
 // QueueHandle_t Buzzer_cmd_queue_handle;
 
 // QueueHandle_t Chassis_feedback_queue_handle;
+
+QueueHandle_t Motor_read_queue_handle = NULL;
 
 Uart_instance_t* test_uart = NULL;
 
@@ -63,12 +67,19 @@ void Robot_task_init(void)
     // Chassis_feedback_queue_handle = xQueueCreate(1, sizeof(Chassis_feedback_info_t));
 
     // Buzzer_cmd_queue_handle = xQueueCreate(5,sizeof(uint8_t));
+
+    // 电机读取队列：深度为1，覆盖写模式，始终保持最新数据
+    Motor_read_queue_handle = xQueueCreate(1, sizeof(Motor_read_data_t));
+
     // 选择要运行的测试任务（取消注释需要的测试）
   osThreadDef(motor_test_task, Motor_test_task, osPriorityHigh, 0, 512);
   motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);
 
   // osThreadDef(motor_ctr_task, Motor_ctr_task, osPriorityHigh, 0, 512);
   // motor_ctr_task_handle = osThreadCreate(osThread(motor_ctr_task), NULL);
+
+  osThreadDef(motor_read_task, Motor_read_task, osPriorityHigh, 0, 512);
+  motor_read_task_handle = osThreadCreate(osThread(motor_read_task), NULL);
 
     // SPI-CAN 桥接任务：接收上位机 SPI 指令 → 电机 CAN，电机状态 → SPI 回传
   // osThreadDef(spi_motor_bridge_task, Spi_motor_bridge_task, osPriorityHigh, 0, 512);

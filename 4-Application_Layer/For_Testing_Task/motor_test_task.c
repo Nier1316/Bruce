@@ -1,4 +1,5 @@
 #include "motor_test_task.h"
+#include "motor_read_task.h"
 #include "robot_task.h"
 #include "ele_motor.h"
 #include <math.h>
@@ -7,7 +8,8 @@
  * @brief 电机力矩正弦测试任务
  *
  * 使用阻抗模式（kp=kd=0）实现纯力矩前馈控制，
- * 向电机持续输出正弦波形力矩指令，并通过串口打印反馈数据。
+ * 向电机持续输出正弦波形力矩指令。
+ * 电机反馈数据（角度、扭矩、温度）由 Motor_read_task 通过队列提供。
  *
  * 正弦参数：
  *   幅值  MOTOR_TEST_TORQUE_AMP = 5 Nm
@@ -19,13 +21,12 @@ void Motor_test_task(void const *argument)
     TickType_t last = xTaskGetTickCount();
     const TickType_t period = pdMS_TO_TICKS(MOTOR_TEST_PERIOD_MS);          /* 控制周期 */
     const float dt    = MOTOR_TEST_PERIOD_MS * 0.001f;                      /* 时间步长 (s) */
-   const float amp   = MOTOR_TEST_TORQUE_AMP;                              /* 力矩幅值 (Nm) */
-   const float omega = 2.0f * 3.1415926f * MOTOR_TEST_FREQ_HZ;            /* 角频率 (rad/s) */
-    float t = 0.0f;                                /* 累计时间 (s) */
+    const float amp   = MOTOR_TEST_TORQUE_AMP;                              /* 力矩幅值 (Nm) */
+    const float omega = 2.0f * 3.1415926f * MOTOR_TEST_FREQ_HZ;            /* 角频率 (rad/s) */
+    float t = 0.0f;                                                         /* 累计时间 (s) */
 
-    Ele_motor_feedback_t fb;
-    float param_value = 0.0f;
-    uint8_t is_param  = 0U;
+    Motor_read_data_t motor_data;
+    uint32_t print_counter = 0;
 
     (void)argument;
 
@@ -35,23 +36,17 @@ void Motor_test_task(void const *argument)
 
     for (;;)
     {
-        /* 发送参数读取请求，电机下一周期回传参数帧 */
-        Ele_motor_param_rw(0.0f, 0U, ELE_MOTOR_OR_WE, MOTOR_TEST_ELE_ID);
-
-        /* 读取上一周期参数请求的回包 */
-        if (Ele_motor_fetch_rx(&fb, &param_value, &is_param))
+        /* 从队列读取最新的电机参数（读取电机1的数据：motor[0]）*/
+        if (xQueuePeek(Motor_read_queue_handle, &motor_data, 0) == pdTRUE)
         {
-            if (is_param)
+            print_counter++;
+            /* 每 10 次读取（约 100ms）打印一次反馈数据 */
+            if (print_counter >= 10)
             {
-                /* 参数读写回包 */
-                Uart_printf(test_uart, "ele id=%d param=%.3f\r\n", MOTOR_TEST_ELE_ID, param_value);
+                Uart_printf(test_uart, "test: angle=%.4f torque=%.3f temp=%.1f\r\n",
+                           motor_data.motor[0].angle, motor_data.motor[0].torque, motor_data.motor[0].temperature);
+                print_counter = 0;
             }
-           else
-           {
-               /* 控制反馈回包：位置、速度、力矩 */
-               Uart_printf(test_uart, "ele id=%d p=%.3f v=%.3f tq=%.3f\r\n",
-                           fb.id, fb.position, fb.velocity, fb.torque);
-           }
         }
 
         /* 计算当前时刻的正弦力矩目标值 */

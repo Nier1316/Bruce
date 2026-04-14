@@ -17,6 +17,7 @@ extern osThreadId buzzer_alarm_task_handle;
 /*队列*/
 extern QueueHandle_t Chassis_cmd_queue_handle;
 extern QueueHandle_t Buzzer_cmd_queue_handle;
+extern QueueHandle_t Motor_read_queue_handle;
 
 extern Uart_instance_t* test_uart;
 
