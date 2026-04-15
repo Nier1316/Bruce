@@ -16,6 +16,7 @@
  */
 
 #include "motor_read_task.h"
+#include "bsp_usart.h"
 #include "robot_task.h"
 
 /* 电机ID数组 */
@@ -45,8 +46,7 @@ void Motor_read_task(void const *argument)
     Motor_read_data_t motor_data;
     Read_state_t read_state = READ_STATE_ANGLE;
 
-    uint32_t received_count;
-    uint32_t max_attempts;
+    uint32_t rx_start_tick;
 
     (void)argument;
 
@@ -67,9 +67,10 @@ void Motor_read_task(void const *argument)
 
     for (;;)
     {
-        /* ===== 第一步：发送请求（同一周期内逐次发送三个电机的请求） ===== */
+        /* ===== 第一步 & 第二步：逐电机发请求、等回包，避免多帧并发覆盖 ===== */
         for (motor_idx = 0; motor_idx < MOTOR_READ_COUNT; motor_idx++)
         {
+            /* 发送当前电机的读取请求 */
             switch (read_state)
             {
                 case READ_STATE_ANGLE:
@@ -87,45 +88,34 @@ void Motor_read_task(void const *argument)
                 default:
                     break;
             }
-        }
 
-        /* ===== 第二步：接收回包（同一周期内接收所有三个电机的响应） ===== */
-        received_count = 0;
-        max_attempts = 100;  /* 防止无限循环 */
-
-        while (received_count < MOTOR_READ_COUNT && max_attempts > 0)
-        {
-            if (Ele_motor_fetch_rx(&fb, &param_value, &is_param) && is_param)
+            /* 等待该电机回包，超时 5ms */
+            rx_start_tick = HAL_GetTick();
+            while ((HAL_GetTick() - rx_start_tick) < 5U)
             {
-                /* 找到对应电机的索引 */
-                for (motor_idx = 0; motor_idx < MOTOR_READ_COUNT; motor_idx++)
+                if (Ele_motor_fetch_rx(&fb, &param_value, &is_param) && is_param
+                    && fb.id == motor_ids[motor_idx])
                 {
-                    if (fb.id == motor_ids[motor_idx])
+                    switch (read_state)
                     {
-                        /* 根据当前读取状态更新对应的参数 */
-                        switch (read_state)
-                        {
-                            case READ_STATE_ANGLE:
-                                motor_data.motor[motor_idx].angle = param_value;
-                                break;
+                        case READ_STATE_ANGLE:
+                            motor_data.motor[motor_idx].angle = param_value;
+                            break;
 
-                            case READ_STATE_TORQUE:
-                                motor_data.motor[motor_idx].torque = param_value;
-                                break;
+                        case READ_STATE_TORQUE:
+                            motor_data.motor[motor_idx].torque = param_value;
+                            break;
 
-                            case READ_STATE_TEMPERATURE:
-                                motor_data.motor[motor_idx].temperature = param_value;
-                                break;
+                        case READ_STATE_TEMPERATURE:
+                            motor_data.motor[motor_idx].temperature = param_value;
+                            break;
 
-                            default:
-                                break;
-                        }
-                        received_count++;
-                        break;
+                        default:
+                            break;
                     }
+                    break;  /* 收到该电机回包，处理下一台 */
                 }
             }
-            max_attempts--;
         }
 
         /* ===== 第三步：检查是否所有参数都已读取 ===== */
@@ -141,6 +131,7 @@ void Motor_read_task(void const *argument)
                         motor_data.motor[1].angle, motor_data.motor[1].torque, motor_data.motor[1].temperature,
                         motor_data.motor[2].angle, motor_data.motor[2].torque, motor_data.motor[2].temperature);
         }
+
 
         /* ===== 第四步：状态转移 ===== */
         read_state = (Read_state_t)((read_state + 1) % 3);

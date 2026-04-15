@@ -129,7 +129,7 @@ static inline void Can_fifo_process(CAN_HandleTypeDef *hcan, uint32_t fifox)
     {
         if (HAL_CAN_GetRxMessage(hcan, fifox, &rxconf, can_rx_buff) == HAL_OK)
         {
-            // === [优化] 极速查表 ===
+                       // === [优化] 极速查表 ===
             // 不再循环遍历数组，而是直接用 ID 当索引去取指针
             if (rxconf.StdId < CAN_FAST_LUT_SIZE)
             {

@@ -35,6 +35,24 @@ static void ele_send_raw(uint8_t id, uint8_t data[8])
     HAL_CAN_AddTxMessage(&hcan1, &tx, data, &mailbox);
 }
 
+/**
+ * @brief CAN 接收中断回调，解析电机回传帧
+ *
+ * 电机回传两种帧，通过 data[0] bit7 和 data[5] 低7位区分：
+ *
+ * 参数帧（读写参数的响应）：
+ *   data[0] bit7=1  且  data[5] & 0x7F != 0
+ *   data[0] 低4位 = 电机 ID
+ *   data[1..4]    = 参数值（float，小端）
+ *   data[5] 低7位 = 参数寄存器地址（如 0x0F=角度，0x11=扭矩）
+ *
+ * 控制帧（运动控制指令的状态回包）：
+ *   其余情况
+ *   data[0] 低4位 = 电机 ID
+ *   data[1..2]    = 位置（16bit，映射到 P_MIN~P_MAX）
+ *   data[3]高8位 + data[4]高4位 = 速度（12bit，映射到 V_MIN~V_MAX）
+ *   data[4]低4位 + data[5]     = 扭矩（12bit，映射到 -T_MAX~T_MAX）
+ */
 static void Ele_motor_can_rx_cb(Can_controller_t *can_dev, void *context)
 {
     Ele_motor_ctx_t *ctx = (Ele_motor_ctx_t *)context;
@@ -42,11 +60,15 @@ static void Ele_motor_can_rx_cb(Can_controller_t *can_dev, void *context)
 
     if ((data[0] & 0x80U) && (data[5] & 0x7FU))
     {
+        /* 参数帧：提取电机 ID 和参数值 */
         ctx->is_param_frame = 1U;
+        ctx->feedback.id = data[0] & 0x0FU;
         ctx->param_value = Ele_motor_u8Arry2float(data, 1);
     }
+    
     else
     {
+        /* 控制帧：解包位置/速度/扭矩（定点数→浮点数） */
         uint16_t p_int = (uint16_t)((data[1] << 8) | data[2]);
         uint16_t v_int = (uint16_t)((data[3] << 4) | (data[4] >> 4));
         uint16_t i_int = (uint16_t)(((data[4] & 0x0F) << 8) | data[5]);
@@ -99,11 +121,12 @@ void Ele_motor_init(uint8_t id)
         uint32_t start_tick;
         g_ele_ctx.has_new = 0U;
         ele_send_raw(id, data);
+        Ele_motor_param_rw(0.0f, 0U, ELE_MOTOR_OR_ANGLE, id);  /* 触发电机回传参数帧 */
         start_tick = HAL_GetTick();
 
         while ((HAL_GetTick() - start_tick) < ELE_ENABLE_WAIT_TIMEOUT_MS)
         {
-            if (Ele_motor_fetch_rx(&fb, 0, &is_param) && !is_param)
+            if (Ele_motor_fetch_rx(&fb, 0, &is_param) )
             {
                 return;
             }
@@ -127,18 +150,16 @@ uint8_t Ele_motor_fetch_rx(Ele_motor_feedback_t *feedback, float *param_value, u
         *is_param_frame = g_ele_ctx.is_param_frame;
     }
 
+    if (feedback)
+    {
+        *feedback = g_ele_ctx.feedback;  /* id 对两种帧都有效 */
+    }
+
     if (g_ele_ctx.is_param_frame)
     {
         if (param_value)
         {
             *param_value = g_ele_ctx.param_value;
-        }
-    }
-    else
-    {
-        if (feedback)
-        {
-            *feedback = g_ele_ctx.feedback;
         }
     }
 
