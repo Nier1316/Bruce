@@ -1,6 +1,8 @@
 #include "ele_motor.h"
+#include "bsp_usart.h"
 #include "can.h"
 #include "bsp_can.h"
+#include "robot_task.h"
 
 #define ELE_RW_WRITE 1U
 #define ELE_PKT_HEAD 0x80U
@@ -207,15 +209,35 @@ void Ele_motor_set_para(float p1, float p2, float p3, float p4, float p5, uint8_
     if (mode == ELE_MOTOR_MODE_IMPEDANCE)
     {
         /* 扭矩软件限幅，防止上层传入超限值 */
+        /* 扭矩软件限幅，防止上层传入超限值 */
         if (p5 >  ELE_MOTOR_T_MAX) p5 =  ELE_MOTOR_T_MAX;
         if (p5 < -ELE_MOTOR_T_MAX) p5 = -ELE_MOTOR_T_MAX;
 
-        uint16_t p_int = Ele_motor_float_to_uint(p1, ELE_MOTOR_P_MIN, ELE_MOTOR_P_MAX, 15);
-        uint16_t v_int = Ele_motor_float_to_uint(p2, ELE_MOTOR_V_MIN, ELE_MOTOR_V_MAX, 12);
+        /* 将浮点参数量化为定点整数：
+         *   p_int  : 位置，15bit 分辨率
+         *   v_int  : 速度，12bit 分辨率
+         *   kp_int : 位置刚度系数 Kp，12bit 分辨率
+         *   kd_int : 阻尼系数 Kd，12bit 分辨率
+         *   t_int  : 前馈扭矩，12bit 分辨率
+         */
+        uint16_t p_int  = Ele_motor_float_to_uint(p1, ELE_MOTOR_P_MIN,  ELE_MOTOR_P_MAX,  15);
+        uint16_t v_int  = Ele_motor_float_to_uint(p2, ELE_MOTOR_V_MIN,  ELE_MOTOR_V_MAX,  12);
         uint16_t kp_int = Ele_motor_float_to_uint(p3, ELE_MOTOR_KP_MIN, ELE_MOTOR_KP_MAX, 12);
         uint16_t kd_int = Ele_motor_float_to_uint(p4, ELE_MOTOR_KD_MIN, ELE_MOTOR_KD_MAX, 12);
-        uint16_t t_int = Ele_motor_float_to_uint(p5, ELE_MOTOR_T_MIN, ELE_MOTOR_T_MAX, 12);
+        uint16_t t_int  = Ele_motor_float_to_uint(p5, ELE_MOTOR_T_MIN,  ELE_MOTOR_T_MAX,  12);
 
+        /* 按照协议格式将量化值打包进 8 字节 CAN 帧：
+         *  Byte0[6:0]  = p[14:8]   (最高位保留为 0，共 15bit)
+         *  Byte1[7:0]  = p[7:0]
+         *  Byte2[7:0]  = v[11:4]
+         *  Byte3[7:4]  = v[3:0]
+         *  Byte3[3:0]  = kp[11:8]
+         *  Byte4[7:0]  = kp[7:0]
+         *  Byte5[7:0]  = kd[11:4]
+         *  Byte6[7:4]  = kd[3:0]
+         *  Byte6[3:0]  = t[11:8]
+         *  Byte7[7:0]  = t[7:0]
+         */
         data[0] = (uint8_t)((p_int >> 8) & 0x7F);
         data[1] = (uint8_t)(p_int & 0xFF);
         data[2] = (uint8_t)(v_int >> 4);
@@ -224,6 +246,8 @@ void Ele_motor_set_para(float p1, float p2, float p3, float p4, float p5, uint8_
         data[5] = (uint8_t)(kd_int >> 4);
         data[6] = (uint8_t)(((kd_int & 0x0F) << 4) | (t_int >> 8));
         data[7] = (uint8_t)(t_int & 0xFF);
+
+
     }
     else if (mode == ELE_MOTOR_MODE_SPEED)
     {
@@ -328,6 +352,7 @@ unsigned int Ele_motor_float_to_uint(float x, float x_min, float x_max, int bits
 void Ele_motor_write_control_mode(uint8_t id, uint8_t mode)
 {
     Ele_motor_param_rw((float)mode, ELE_RW_WRITE, ELE_MOTOR_WR_CONTROL_MODE, id);
+    Uart_printf(test_uart, "Output Mode : %d/n",mode);
 }
 
 /** 快捷接口：位置模式参数发送 */

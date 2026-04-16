@@ -43,8 +43,8 @@ void Motor_test_task(void const *argument)
             /* 每 10 次读取（约 100ms）打印一次反馈数据 */
             if (print_counter >= 10)
             {
-                Uart_printf(test_uart, "test: angle=%.4f torque=%.3f temp=%.1f\r\n",
-                           motor_data.motor[0].angle, motor_data.motor[0].torque, motor_data.motor[0].temperature);
+                // Uart_printf(test_uart, "test: angle=%.4f torque=%.3f temp=%.1f\r\n",
+                //            motor_data.motor[0].angle, motor_data.motor[0].torque, motor_data.motor[0].temperature);
                 print_counter = 0;
             }
         }

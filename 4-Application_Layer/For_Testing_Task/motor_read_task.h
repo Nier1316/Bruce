@@ -20,9 +20,10 @@
 /* 单个电机的参数数据结构 */
 typedef struct
 {
-    float angle;      /* 电机角度 (rad) */
-    float torque;     /* 电机扭矩 (Nm) */
-    float temperature;/* 电机温度 (°C) */
+    float angle;         /* 电机角度 (rad) */
+    float torque;        /* 电机扭矩 (Nm) */
+    float temperature;   /* 电机温度 (°C) */
+    uint8_t control_mode;/* 控制模式 (0=阻抗, 1=速度, 2=位置) */
 } Motor_single_data_t;
 
 /* 多电机参数数据结构 */

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "can.h"
-#include "stdio.h"
 
 // [新增] 快速查找表 (Look-Up Table)
 // 索引是 CAN ID，存储的是对应的设备指针
@@ -164,11 +163,6 @@ static inline void Can_fifo_process(CAN_HandleTypeDef *hcan, uint32_t fifox)
  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    static uint32_t rx_count = 0;
-    rx_count++;
-    if(rx_count % 1000 == 0) {
-        printf("CAN RX interrupt triggered, count=%lu\r\n", rx_count);
-    }
     Can_fifo_process(hcan, CAN_RX_FIFO0);
 }
 

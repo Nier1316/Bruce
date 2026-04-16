@@ -72,8 +72,8 @@ void Robot_task_init(void)
     Motor_read_queue_handle = xQueueCreate(1, sizeof(Motor_read_data_t));
 
     // 选择要运行的测试任务（取消注释需要的测试）
-  // osThreadDef(motor_test_task, Motor_test_task, osPriorityHigh, 0, 512);
-  // motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);
+  osThreadDef(motor_test_task, Motor_test_task, osPriorityHigh, 0, 512);
+  motor_test_task_handle = osThreadCreate(osThread(motor_test_task), NULL);
 
   // osThreadDef(motor_ctr_task, Motor_ctr_task, osPriorityHigh, 0, 512);
   // motor_ctr_task_handle = osThreadCreate(osThread(motor_ctr_task), NULL);
