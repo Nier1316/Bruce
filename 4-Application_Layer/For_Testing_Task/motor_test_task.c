@@ -31,8 +31,6 @@ void Motor_test_task(void const *argument)
     (void)argument;
 
     /* 初始化电机并切换到阻抗控制模式 */
-    Ele_motor_init(MOTOR_TEST_ELE_ID);
-    Ele_motor_write_control_mode(MOTOR_TEST_ELE_ID, ELE_MOTOR_MODE_IMPEDANCE);
 
     for (;;)
     {

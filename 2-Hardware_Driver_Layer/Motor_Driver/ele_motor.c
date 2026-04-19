@@ -108,8 +108,18 @@ void Ele_motor_register(uint8_t id)
 
 void Ele_motor_init(uint8_t id)
 {
-    uint8_t data[8] = {ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL,
-                       ELE_CMD_FILL, ELE_CMD_FILL, ELE_CMD_FILL, ELE_MOTOR_START};
+    Ele_motor_write_control_mode(id, ELE_MOTOR_MODE_IMPEDANCE);
+
+    uint8_t data[8] = {
+        ELE_PKT_HEAD,
+        ELE_CMD_FILL, 
+        ELE_CMD_FILL, 
+        ELE_CMD_FILL,
+        ELE_CMD_FILL, 
+        ELE_CMD_FILL, 
+        ELE_CMD_FILL, 
+        ELE_MOTOR_START};
+
     Ele_motor_feedback_t fb;
     uint8_t is_param = 0U;
 
